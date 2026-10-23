@@ -830,6 +830,35 @@ def _acquire_lock():
         return None
 
 
+def _start_network_watcher():
+    """后台监听 Windows 网络变化（IP 地址变化），返回 threading.Event。
+
+    用 iphlpapi.NotifyAddrChange：Handle=NULL 时阻塞，直到网络变化才返回。
+    这样守护进程不用轮询，断网/换网后能立刻触发重连。
+    """
+    if os.name != "nt":
+        return None
+    import threading
+
+    change = threading.Event()
+
+    def watch():
+        try:
+            import ctypes
+
+            iphlpapi = ctypes.WinDLL("iphlpapi.dll")
+            while True:
+                if iphlpapi.NotifyAddrChange(None, None) != 0:
+                    time.sleep(30)
+                    continue
+                change.set()
+        except Exception:  # noqa: BLE001
+            return
+
+    threading.Thread(target=watch, daemon=True, name="netwatch").start()
+    return change
+
+
 def cmd_watch(args) -> int:
     lock = _acquire_lock()
     if lock is None:
@@ -842,6 +871,9 @@ def cmd_watch(args) -> int:
         return 2
 
     log("守护模式启动，间隔 {} 秒".format(args.interval if args.interval > 0 else "仅一次"))
+    change_event = _start_network_watcher()
+    if change_event is not None:
+        log("已启用网络变化监听，断网/换网后立即检查")
     state = None
     failures = 0
     try:
@@ -886,7 +918,18 @@ def cmd_watch(args) -> int:
                 failures += 1
                 # 开机后网络可能还没就绪：前 4 分钟用短间隔快速重试
                 delay = args.retry if failures <= 12 else args.interval
-            time.sleep(max(5, int(delay)))
+
+            if ok and change_event is not None:
+                # 等网络变化或到点兜底检查（不轮询）
+                change_event.wait(max(5, int(delay)))
+                if change_event.is_set():
+                    change_event.clear()
+                    log("检测到网络变化，立即检查")
+                    time.sleep(2)  # 等网络稳定
+                    change_event.clear()
+                    continue
+            else:
+                time.sleep(max(5, int(delay)))
     except KeyboardInterrupt:
         log("守护模式被手动中断")
         return 0
