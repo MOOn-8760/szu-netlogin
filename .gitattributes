@@ -1,0 +1,10 @@
+# 统一换行符，避免 Windows / *nix 之间来回改文件
+* text=auto eol=lf
+
+# Windows 批处理必须是 CRLF，否则双击会闪退
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

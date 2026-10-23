@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+.venv/
+venv/
+env/
+
+# Test / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# 本地配置与凭据 —— 千万别提交
+config.json
+campusnet.json
+*.local.json
+logs/
+*.log
+# 指纹报告：虽然脚本会自动打码，但那是本机信息，不进版本库
+campusnet-fingerprint.txt
+
+# skill 打包产物（上面 dist/ 已覆盖，这里写清楚是给谁用的）
+skill/dist/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 本项目的本地凭据（真实位置在 %APPDATA%，这里再兜一层，防止误拷进仓库）
+password.dat
+autologin.log*
+
+# 打包产物（exe/zip 作为 Release 附件上传，不进源码仓库）
+dist/
+build/
+*.spec
+_pytmp/
