@@ -841,7 +841,7 @@ def cmd_watch(args) -> int:
         log("未配置账号或密码，守护模式退出（请先运行 setup.bat）")
         return 2
 
-    log("守护模式启动，间隔 {} 秒".format(args.interval))
+    log("守护模式启动，间隔 {} 秒".format(args.interval if args.interval > 0 else "仅一次"))
     state = None
     failures = 0
     try:
@@ -878,6 +878,9 @@ def cmd_watch(args) -> int:
 
             if ok:
                 failures = 0
+                if args.interval <= 0:
+                    log("守护模式：仅在启动时检查一次，正常退出")
+                    return 0
                 delay = args.interval
             else:
                 failures += 1
@@ -1150,7 +1153,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help='强制账号前缀（如 ",0," 或空串），一般不需要手动指定',
     )
-    parser.add_argument("--interval", type=int, default=300, help="守护模式检查间隔（秒，默认 300）")
+    parser.add_argument("--interval", type=int, default=1800,
+                        help="守护模式检查间隔（秒，默认 1800=30 分钟；0 表示只在启动时检查一次）")
     parser.add_argument("--retry", type=int, default=20, help="失败后的重试间隔（秒，默认 20）")
     parser.add_argument("--idle", type=int, default=300, help="不在校园网时的等待秒数（默认 300）")
     parser.add_argument("--auth-retry", dest="auth_retry", type=int, default=900,
