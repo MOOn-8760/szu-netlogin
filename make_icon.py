@@ -86,13 +86,45 @@ def make(size: int) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS)
 
 
+def bmp_payload(img: Image.Image) -> bytes:
+    """把 RGBA 图像编码成 ICO 内部的 BMP(DIB) 数据。
+
+    小尺寸必须用 BMP：PNG 压缩的 ICO 条目在资源管理器 / System.Drawing
+    里会渲染成花屏（这正是"图标损坏"的原因）。
+    """
+    w, h = img.size
+    px = img.convert("RGBA").load()
+
+    xor = bytearray()
+    for y in range(h - 1, -1, -1):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            xor += bytes((b, g, r, a))
+
+    stride = ((w + 31) // 32) * 4
+    mask = bytearray()
+    for y in range(h - 1, -1, -1):
+        row = bytearray(stride)
+        for x in range(w):
+            if px[x, y][3] == 0:
+                row[x // 8] |= 1 << (7 - (x % 8))
+        mask += row
+
+    header = struct.pack("<IiiHHIIiiII", 40, w, h * 2, 1, 32, 0,
+                         len(xor) + len(mask), 0, 0, 0, 0)
+    return header + bytes(xor) + bytes(mask)
+
+
 def write_ico(path: Path, images):
     images = sorted(images, key=lambda im: im.width)
     payloads = []
     for im in images:
-        buf = io.BytesIO()
-        im.save(buf, format="PNG")
-        payloads.append(buf.getvalue())
+        if im.width >= 256:
+            buf = io.BytesIO()
+            im.save(buf, format="PNG")
+            payloads.append(buf.getvalue())
+        else:
+            payloads.append(bmp_payload(im))
 
     with open(path, "wb") as fh:
         fh.write(struct.pack("<HHH", 0, 1, len(images)))

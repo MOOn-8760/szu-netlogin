@@ -643,7 +643,15 @@ def cmd_setup(args) -> int:
 
 # --------------------------------------------------------------------------- 开机自启
 def _autostart_command() -> str:
-    if FROZEN:  # 打包后直接让 exe 自己进守护模式
+    if FROZEN:
+        # 优先走隐藏启动器（WMI 创建进程），避免未签名 exe 触发
+        # Windows 的"打开文件 - 安全警告 / 无法验证发布者"弹窗
+        launcher = Path(sys.executable).parent / "启动.vbs"
+        if launcher.exists():
+            return '"{}" "{}" --watch'.format(
+                Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "wscript.exe",
+                launcher,
+            )
         return '"{}" --watch'.format(sys.executable)
     return '"{}" "{}" --watch'.format(python_executable(console=False), ROOT / "autologin.py")
 
