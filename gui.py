@@ -35,7 +35,7 @@ import autologin as core  # noqa: E402
 
 APP_TITLE = "szu-netlogin"
 SUBTITLE = "Shenzhen University · 校园网自动登录"
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 BG = "#f3f5f9"
 CARD = "#ffffff"

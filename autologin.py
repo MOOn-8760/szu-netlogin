@@ -123,6 +123,22 @@ def say(text: str = "") -> None:
         pass
 
 
+def clear_motw(path: Path) -> None:
+    """删除文件的 Zone.Identifier（“来自 Internet”标记）。
+
+    带这个标记的 exe 每次运行都会弹「无法验证发布者」。
+    程序启动时清掉自己的标记，后续双击就不会再提示。
+    """
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.kernel32.DeleteFileW(ctypes.c_wchar_p(str(path) + ":Zone.Identifier"))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def log(message: str) -> None:
     """写日志（追加、带时间戳、超过 512KB 轮转一份）。"""
     try:

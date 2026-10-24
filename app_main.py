@@ -36,6 +36,15 @@ CLI_FLAGS = (
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
+    # 清掉自身“来自 Internet”标记，避免每次双击都弹「无法验证发布者」
+    if getattr(sys, "frozen", False):
+        try:
+            import autologin
+
+            autologin.clear_motw(Path(sys.executable))
+        except Exception:
+            pass
+
     if "--selftest" in argv:
         import faulthandler
 
